@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Auto-encrypt appstate.json on save",
+            "detail": "Encrypts the Facebook cookies (appstate.json) into appstate.enc every time the file is saved",
+            "type": "shell",
+            "command": "node tools/appstate-crypt.js watch",
+            "isBackground": true,
+            "runOptions": { "runOn": "folderOpen" },
+            "presentation": { "reveal": "silent", "panel": "dedicated", "clear": true },
+            "problemMatcher": []
+        }
+    ]
+}

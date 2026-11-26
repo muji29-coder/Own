@@ -1,0 +1,15 @@
+#!/bin/sh
+# Runs before every commit:
+# 1) reminds you when the plain Facebook cookies (appstate.json) are in the commit
+#    (allowed on purpose: this repo is PRIVATE and the cookies are kept in it directly)
+# 2) keeps the encrypted copy (appstate.enc) up to date and in the commit
+
+if git diff --cached --name-only --diff-filter=ACMR | grep -qx "appstate.json"; then
+  echo "⚠️  appstate.json (your real Facebook cookies) is in this commit."
+  echo "    OK for this PRIVATE repo. Before making the repo public, remove it and change the cookies."
+fi
+
+if [ -f appstate.json ]; then
+  node tools/appstate-crypt.js encrypt || exit 1
+  git add appstate.enc
+fi

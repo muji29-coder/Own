@@ -1,0 +1,87 @@
+name: Run Bot
+
+on:
+  push:
+    branches: [main]
+  # Start manually from the Actions tab ("Run workflow" button)
+  workflow_dispatch:
+  # GitHub stops a job after 6 hours, so restart the bot every 5 hours.
+  # (Scheduled runs can start a few minutes late.)
+  schedule:
+    - cron: "0 */5 * * *"
+
+# Only one bot at a time: a new run stops the old one (avoids two logins on the same account)
+concurrency:
+  group: messenger-bot
+  cancel-in-progress: true
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    # lets the bot save the approved-groups list back to the repo (utils/approval.js)
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      # Deno: the JavaScript runtime yt-dlp recommends for YouTube (#music / #video)
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: npm install
+
+      # ffmpeg lets yt-dlp fix up downloaded audio/video files (used by #music / #video)
+      - name: Install ffmpeg
+        run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+
+      # Secret files are created here from GitHub Secrets, so they are never stored in the repo
+      - name: Create appstate.json and cookies.txt
+        env:
+          APPSTATE: ${{ secrets.APPSTATE }}
+          APPSTATE_KEY: ${{ secrets.APPSTATE_KEY }}
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          # Facebook cookies, first match wins:
+          # 1) appstate.json put directly in this PRIVATE repo (e.g. pasted on the GitHub website)
+          # 2) the encrypted appstate.enc (key: APPSTATE_KEY secret, or the .appstate.key file in this private repo)
+          # 3) the APPSTATE secret
+          if [ -s appstate.json ]; then
+            echo "Facebook cookies: using appstate.json from the repo"
+          elif [ -f appstate.enc ] && { [ -n "$APPSTATE_KEY" ] || [ -f .appstate.key ]; }; then
+            node tools/appstate-crypt.js decrypt || { echo "::error::Could not decrypt appstate.enc - check the APPSTATE_KEY secret / .appstate.key"; exit 1; }
+          elif [ -n "$APPSTATE" ]; then
+            printf '%s' "$APPSTATE" > appstate.json
+          else
+            echo "::error::No Facebook cookies: add appstate.json, or appstate.enc (+ .appstate.key), or the APPSTATE_KEY / APPSTATE secret."
+            exit 1
+          fi
+          node -e 'JSON.parse(require("fs").readFileSync("appstate.json", "utf8"))' || { echo "::error::appstate.json is not valid JSON - paste the full cookie list starting with [ and ending with ]"; exit 1; }
+          if [ -s cookies.txt ]; then
+            echo "YouTube cookies: using cookies.txt from the repo"
+          elif [ -n "$YT_COOKIES" ]; then
+            printf '%s\n' "$YT_COOKIES" > cookies.txt
+            echo "YouTube cookies: added"
+          else
+            echo "YouTube cookies: not set (#music / #video may be blocked by YouTube on GitHub servers)"
+          fi
+
+      - name: Start the bot
+        env:
+          PORT: 8080
+          # GitHub's servers run on UTC; make the bot's clock Pakistan time
+          TZ: Asia/Karachi
+          SIMSIMI_API_KEY: ${{ secrets.SIMSIMI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: npm start

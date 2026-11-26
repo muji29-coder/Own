@@ -1,0 +1,23 @@
+node_modules
+
+# Secrets
+# NOTE: this repo is PRIVATE, so the Facebook cookies (appstate.json), the cookie key (.appstate.key)
+# and the YouTube cookies (cookies.txt) are committed on purpose. Before the repo is ever made public:
+# remove them from the repo, change the cookies, and use GitHub secrets (APPSTATE / APPSTATE_KEY / YT_COOKIES).
+
+# yt-dlp program (downloaded automatically by utils/ytdlp.js)
+bin/
+
+# Temporary YouTube downloads
+Shayan/commands/cache/yt_*
+
+# raw rows pasted from Chrome Dev Tools (tools/devtools-to-cookies.js turns them into cookies.txt)
+devtools-cookies.txt
+
+# Secret files: on GitHub they come from Settings > Secrets (APPSTATE, YT_COOKIES)
+appstate.json
+appstate.enc
+.appstate.key
+cookies.txt
+devtools-cookies.txt
+.env
