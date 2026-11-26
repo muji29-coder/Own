@@ -44,7 +44,14 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
       if (!NDH.includes(senderID) && !ADMINBOT.includes(senderID) && adminbot.ndhOnly == true) return api.sendMessage('MODE » Only bot support can use bots', threadID, messageID)
     }
     const dataAdbox = require('../../Shayan/commands/cache/data.json');
-    var threadInf = (threadInfo.get(threadID) || await Threads.getInfo(threadID));
+    // Chat info (group admins). Inbox chats don't need it, and Facebook can't give it for encrypted (🔒) inbox
+    // chats, so don't ask there; and if asking fails, carry on instead of silently dropping the command.
+    const getThreadInfoSafe = async () => {
+      if (threadInfo.get(threadID)) return threadInfo.get(threadID);
+      if (!event.isGroup) return {};
+      try { return (await Threads.getInfo(threadID)) || {}; } catch (e) { return {}; }
+    };
+    var threadInf = await getThreadInfoSafe();
     const findd = (threadInf.adminIDs || []).find(el => el.id == senderID);
     if (dataAdbox.adminbox.hasOwnProperty(threadID) && dataAdbox.adminbox[threadID] == true && !ADMINBOT.includes(senderID) && !findd && event.isGroup == true) return api.sendMessage('MODE » Only admins can use bots', event.threadID, event.messageID)
     if (userBanned.has(senderID) || threadBanned.has(threadID) || allowInbox == ![] && senderID == threadID) {
@@ -109,7 +116,7 @@ module.exports = function ({ api, models, Users, Threads, Currencies }) {
         logger(global.getText("handleCommand", "cantGetInfoThread", "error"));
       }
     var permssion = 0;
-    var threadInfoo = (threadInfo.get(threadID) || await Threads.getInfo(threadID));
+    var threadInfoo = await getThreadInfoSafe();
     const find = (threadInfoo.adminIDs || []).find(el => el.id == senderID);
     if (NDH.includes(senderID.toString())) permssion = 2;
     if (ADMINBOT.includes(senderID.toString())) permssion = 3;
