@@ -29,6 +29,32 @@ function wrapApi(api) {
     const lastInChat = new Map();    // threadID -> timestamp of last message
     let running = false;
 
+    // Send, and write Facebook's reason to the log when a message can't be delivered
+    // (at most once per chat per 5 minutes). Keeps the caller's callback and promise working.
+    const failLogged = new Map();
+    function sendAndLog(args) {
+        const [msg, threadID, cb0, reply0, isGroup] = args;
+        let cb = cb0, reply = reply0;
+        if (typeof cb === "string" && !reply) { reply = cb; cb = undefined; }
+        const p = new Promise((resolve, reject) => {
+            originalSend(msg, threadID, (err, data) => {
+                if (err) {
+                    const now = Date.now(), key = String(threadID);
+                    if (now - (failLogged.get(key) || 0) > 5 * 60 * 1000) {
+                        failLogged.set(key, now);
+                        let why; try { why = JSON.stringify(err).slice(0, 300); } catch (e) { why = String(err); }
+                        console.log(`[ SEND ] Could not send a message to ${key}: ${why}`);
+                    }
+                }
+                if (typeof cb === "function") { try { cb(err, data); } catch (e) { console.log(`[ SEND ] Callback error: ${e.message}`); } }
+                if (err) reject(err); else resolve(data);
+            }, reply, isGroup);
+        });
+        // the caller handles errors in its callback, so don't also reject (avoids "unhandled rejection")
+        if (typeof cb === "function") return p.then(d => d, () => undefined);
+        return p;
+    }
+
     async function pump() {
         if (running) return;
         running = true;
@@ -56,7 +82,7 @@ function wrapApi(api) {
                 await sleep(delay);
                 lastInChat.set(threadID, Date.now());
                 sentAt.push(Date.now());
-                job.resolve(originalSend(...job.args));
+                job.resolve(sendAndLog(job.args));
             } catch (e) {
                 job.reject(e);
             }
