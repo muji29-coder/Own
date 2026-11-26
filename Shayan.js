@@ -309,6 +309,8 @@ function onBot({ models: botModel }) {
             return listener(message);
         };
         global.handleListen = loginApiData.listenMqtt(listenerCallback);
+        // accept chats/groups stuck in "Message requests" so inbox replies and new-group notices work
+        try { require('./utils/msgrequests.js').start(loginApiData); } catch (e) { logger(`Message requests: ${e.message}`, '[ REQUESTS ]'); }
     });
 }
 
