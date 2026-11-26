@@ -157,6 +157,8 @@ function onBot({ models: botModel }) {
     login(loginData, async(loginError, loginApiData) => {
         if (loginError) return logger(JSON.stringify(loginError), `ERROR`);
         loginApiData.setOptions(global.config.FCAOption)
+        // encrypted (🔒) inbox chats: replies go through utils/e2ee.js (must be wrapped before safety.js)
+        try { require('./utils/e2ee.js').wrapApi(loginApiData); } catch (e) { logger(`E2EE: ${e.message}`, '[ E2EE ]'); }
         // human-like sending (typing delay, per-chat gap, messages-per-minute limit): utils/safety.js
         require('./utils/safety.js').wrapApi(loginApiData);
         writeFileSync(appStateFile, JSON.stringify(loginApiData.getAppState(), null, '\x09'))
@@ -311,6 +313,8 @@ function onBot({ models: botModel }) {
         global.handleListen = loginApiData.listenMqtt(listenerCallback);
         // accept chats/groups stuck in "Message requests" so inbox replies and new-group notices work
         try { require('./utils/msgrequests.js').start(loginApiData); } catch (e) { logger(`Message requests: ${e.message}`, '[ REQUESTS ]'); }
+        // read encrypted (🔒) inbox chats and pass them to the same listener as normal messages
+        require('./utils/e2ee.js').start(loginApiData, (event) => listenerCallback(null, event)).catch(e => logger(`E2EE: ${e.message}`, '[ E2EE ]'));
     });
 }
 

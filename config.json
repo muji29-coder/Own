@@ -8,6 +8,7 @@
     "NOTIFICATION": true,
     "allowInbox": true,
     "inboxChat": true,
+    "e2ee": true,
     "approvalMode": true,
     "safety": {
         "enable": true,

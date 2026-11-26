@@ -21,3 +21,6 @@ appstate.enc
 cookies.txt
 devtools-cookies.txt
 .env
+
+# encrypted-chat device keys (on GitHub they are saved encrypted as e2ee-device.enc)
+Shayan/commands/data/e2ee-device.json

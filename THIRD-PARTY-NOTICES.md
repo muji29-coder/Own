@@ -30,3 +30,8 @@ SOFTWARE.
 ## fca-priyansh 18.0.0 (the Messenger library, now the shayan-fca folder)
 
 Its own MIT license is kept in shayan-fca/LICENSE.
+
+## fb-messenger-e2ee 0.1.8 (encrypted chats, the fme folder)
+
+AGPL-3.0-or-later, by HerokeyVN: https://github.com/HerokeyVN/FB-Messenger-E2EE
+Its license is kept in fme/LICENSE. Because of the AGPL, the source of this bot is kept public.

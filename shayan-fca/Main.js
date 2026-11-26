@@ -380,9 +380,12 @@ function buildAPI(globalOptions, html, jar, bypass_region) {
             else api[File.split('.').slice(0, -1).join('.')] = require('./src/' + File)(defaultFuncs, api, ctx)
         });
 
+        // the current fb_dtsg token (used by utils/e2ee.js for encrypted chats); always read from ctx so refreshes are seen
+        Object.defineProperty(api, "fb_dtsg", { get: () => ctx.fb_dtsg, enumerable: false, configurable: true });
+
         return {
             ctx,
-            defaultFuncs, 
+            defaultFuncs,
             api
         };
     }
