@@ -134,6 +134,8 @@ module.exports = function ({ api, models }) {
                 if (dataU['data'] && dataU.data['commandBanned'] && dataU['data']['commandBanned']['length'] != 0)
                     global['data']['commandBanned']['set'](idUsers, dataU['data']['commandBanned']);
             }
+            // people blocked with #block (saved in Shayan/commands/data/blocked.json, survives restarts)
+            try { require('../Shayan/commands/block.js').applySaved(); } catch (e) { logger(`Could not load blocked list: ${e.message}`, 'error'); }
             for (const dataC of currencies) global.data.allCurrenciesID.push(String(dataC['userID']));
             logger.loader(global.getText('listen', 'loadedEnvironmentUser')), logger(global.getText('listen', 'successLoadEnvironment'), '[ Shayan ]');
         } catch (error) {
@@ -266,11 +268,18 @@ module.exports = function ({ api, models }) {
     //========= Send event to handle need =========//
     /////////////////////////////////////////////////
 
+    // someone blocked with #block: ignore everything from them (bot admins can never be blocked)
+    const isBlocked = (id) => {
+        const b = global.data.userBanned.get(String(id));
+        return !!(b && b.silent) && !(global.config.ADMINBOT || []).map(String).includes(String(id));
+    };
+
     return (event) => {
         switch (event.type) {
           case "message":
           case "message_reply":
           case "message_unsend":
+            if (isBlocked(event.senderID)) break;
             handleCreateDatabase({ event });
             handleCommand({ event });
             handleReply({ event });
@@ -281,6 +290,7 @@ module.exports = function ({ api, models }) {
             handleEvent({ event });
             break;
           case "message_reaction":
+            if (isBlocked(event.userID)) break;
             handleReaction({ event });
             break;
           default:

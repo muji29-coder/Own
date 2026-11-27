@@ -22,6 +22,8 @@ jobs:
     # lets the bot save the approved-groups list back to the repo (utils/approval.js)
     permissions:
       contents: write
+      # lets the #restart command start a fresh run (which loads new cookies/keys from Secrets)
+      actions: write
 
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +82,8 @@ jobs:
           PORT: 8080
           # GitHub's servers run on UTC; make the bot's clock Pakistan time
           TZ: Asia/Karachi
+          # short-lived token of this run, used only by #restart to start a new run
+          GITHUB_TOKEN: ${{ github.token }}
           SIMSIMI_API_KEY: ${{ secrets.SIMSIMI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
